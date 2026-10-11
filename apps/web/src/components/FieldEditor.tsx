@@ -65,11 +65,16 @@ export function FieldEditor({
     if (value === current.current) return;
     current.current = value;
     let alive = true;
+    let applied = false;
     void resolveMedia(sanitizeHtml(value)).then((html) => {
-      if (alive && ref.current) ref.current.innerHTML = html;
+      if (!alive || !ref.current) return;
+      ref.current.innerHTML = html;
+      applied = true;
     });
     return () => {
       alive = false;
+      // Cancelled before it reached the DOM (React's development mode runs effects twice): let the next run redo it.
+      if (!applied && current.current === value) current.current = null;
     };
   }, [value]);
 
