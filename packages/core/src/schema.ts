@@ -4,6 +4,8 @@ import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core
 const synced = {
   id: text('id').primaryKey(),
   modifiedAt: integer('modified_at').notNull(),
+  /** Device id of the last writer. Breaks ties when two devices write in the same millisecond. */
+  modifiedBy: text('modified_by').notNull().default(''),
   deletedAt: integer('deleted_at'),
   serverVersion: integer('server_version'),
 };
@@ -133,6 +135,13 @@ export const outbox = sqliteTable('outbox', {
 export const meta = sqliteTable('meta', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
+});
+
+/** Server-side record of rows that were hard-deleted, so the deletion reaches every device. */
+export const purges = sqliteTable('purges', {
+  serverVersion: integer('server_version').primaryKey(),
+  tableName: text('table_name').notNull(),
+  rowId: text('row_id').notNull(),
 });
 
 export const syncedTables = {

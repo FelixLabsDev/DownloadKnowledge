@@ -11,3 +11,5 @@ export type { AddNoteInput, CardRow, NoteTypeWithTemplates, SearchResult } from 
 export type { Counts, DeckNode, StudyCard, StudyStep } from './study';
 export { Collection, type CollectionOptions } from './collection';
 export type { Ctx } from './store';
+export { put, getMeta, setMeta } from './store';
+export { SyncError, type Change, type PullResponse, type PushRequest, type PushResponse, type SyncResult, type SyncTransport, type WireRow } from './sync';

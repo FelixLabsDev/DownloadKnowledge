@@ -7,6 +7,7 @@ import type { Rating } from './scheduler';
 import { cards, media, type Card, type Deck, type Media, type Note } from './schema';
 import { getMeta, put, setMeta, type Ctx } from './store';
 import * as S from './study';
+import * as Y from './sync';
 
 export interface CollectionOptions {
   /** `client` (default) queues writes for sync; `server` stamps server versions. */
@@ -130,6 +131,18 @@ export class Collection {
         .limit(1);
       return rows[0] ?? null;
     });
+
+  listMedia = (): Promise<Media[]> => this.run((c) => c.tx.select().from(media).where(isNull(media.deletedAt)));
+  /** Local-only settings and bookkeeping (never synced). */
+  getMetaValue = (key: string) => this.run((c) => getMeta(c.tx, key));
+  setMetaValue = (key: string, value: string) => this.run((c) => setMeta(c.tx, key, value));
+
+  // Sync (see sync.ts)
+  applyPush = (body: Y.PushRequest) => this.run((c) => Y.applyPush(c, body));
+  readChanges = (since: number, limit: number) => this.run((c) => Y.readChanges(c, since, limit));
+  purgeDeleted = (cutoff: number) => this.run((c) => Y.purgeDeleted(c, cutoff));
+  pendingCount = () => this.run((c) => Y.pendingCount(c));
+  sync = (transport: Y.SyncTransport) => Y.syncOnce(this, transport);
 
   // Study
   nextStudyStep = (deckId: string) => this.run((c) => S.nextStudyStep(c, deckId));

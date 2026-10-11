@@ -15,7 +15,8 @@ export interface NoteTypeWithTemplates extends NoteType {
 /** Inserts the built-in note types if absent. `modified_at` 0 means any later edit wins. */
 export async function seedBuiltins(ctx: Ctx): Promise<void> {
   const existing = new Set((await ctx.tx.select({ id: noteTypes.id }).from(noteTypes)).map((r) => r.id));
-  const seedCtx = { ...ctx, now: 0 };
+  // Identical on every device (time 0, no author), so seeding twice is not a conflict.
+  const seedCtx = { ...ctx, now: 0, deviceId: '' };
   for (const nt of builtinNoteTypes) {
     if (existing.has(nt.id)) continue;
     await put(seedCtx, 'note_types', {

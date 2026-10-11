@@ -6,7 +6,7 @@
  * Migrations must stay backward compatible with the previous client version
  * (add columns with defaults; do not rename or drop).
  */
-const SYNCED = `id TEXT PRIMARY KEY NOT NULL, modified_at INTEGER NOT NULL, deleted_at INTEGER, server_version INTEGER`;
+const SYNCED = `id TEXT PRIMARY KEY NOT NULL, modified_at INTEGER NOT NULL, modified_by TEXT NOT NULL DEFAULT '', deleted_at INTEGER, server_version INTEGER`;
 
 export const migrations: string[][] = [
   [
@@ -38,6 +38,8 @@ export const migrations: string[][] = [
     `CREATE TABLE agent_batches (${SYNCED}, created_at INTEGER NOT NULL, description TEXT NOT NULL)`,
     `CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, table_name TEXT NOT NULL, row_id TEXT NOT NULL)`,
     `CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)`,
+    `CREATE TABLE purges (server_version INTEGER PRIMARY KEY, table_name TEXT NOT NULL, row_id TEXT NOT NULL)`,
+    `CREATE INDEX purges_row ON purges (table_name, row_id)`,
     ...['decks', 'note_types', 'templates', 'notes', 'cards', 'review_log', 'media', 'agent_batches'].map(
       (t) => `CREATE INDEX ${t}_server_version ON ${t} (server_version)`,
     ),

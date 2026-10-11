@@ -20,8 +20,8 @@ export interface Ctx {
 }
 
 export type Rows = { [K in SyncedTableName]: (typeof syncedTables)[K]['$inferSelect'] };
-export type RowInput<K extends SyncedTableName> = Omit<Rows[K], 'modifiedAt' | 'serverVersion'> &
-  Partial<Pick<Rows[K], 'modifiedAt' | 'serverVersion'>>;
+export type RowInput<K extends SyncedTableName> = Omit<Rows[K], 'modifiedAt' | 'modifiedBy' | 'serverVersion'> &
+  Partial<Pick<Rows[K], 'modifiedAt' | 'modifiedBy' | 'serverVersion'>>;
 
 export async function getMeta(tx: DbOrTx, key: string): Promise<string | null> {
   const rows = await tx.select().from(meta).where(eq(meta.key, key));
@@ -50,6 +50,7 @@ export async function put<K extends SyncedTableName>(ctx: Ctx, name: K, row: Row
     ...row,
     // Strictly increasing per row even if the device clock steps backwards.
     modifiedAt: Math.max(ctx.now, (row.modifiedAt ?? 0) + 1),
+    modifiedBy: ctx.deviceId,
     serverVersion: ctx.role === 'server' ? await nextServerVersion(ctx.tx) : (row.serverVersion ?? null),
   } as Rows[K];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

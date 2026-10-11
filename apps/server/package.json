@@ -1,0 +1,27 @@
+{
+  "name": "@dk/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "esbuild src/main.ts src/cli.ts --bundle --platform=node --format=esm --target=node24 --outdir=dist --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "hash-password": "tsx src/hash-password.ts",
+    "dk": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@dk/core": "workspace:*",
+    "@dk/storage-node": "workspace:*",
+    "@hono/node-server": "latest",
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "latest",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.3"
+  }
+}
