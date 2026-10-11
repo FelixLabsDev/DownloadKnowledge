@@ -1,0 +1,9 @@
+{
+  "name": "@dk/storage-node",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json" },
+  "devDependencies": { "@types/node": "^24.0.0" }
+}

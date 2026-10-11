@@ -1,0 +1,23 @@
+{
+  "name": "downloadknowledge",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "pnpm -r --parallel --if-present dev",
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @dk/web test:e2e",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "latest",
+    "globals": "latest",
+    "typescript": "~5.9.0",
+    "typescript-eslint": "^8.71.1"
+  }
+}
