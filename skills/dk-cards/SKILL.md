@@ -30,7 +30,7 @@ Note types and their fields (`dk note-types list` shows the current set):
 |---|---|---|
 | `Basic` | `Front`, `Back` | 1: Front → Back |
 | `Basic (and reversed card)` | `Front`, `Back` | 2: Front → Back and Back → Front |
-| `Cloze` | `Text`, `Extra` | 1 per cloze number in `Text` |
+| `Cloze` | `Text`, `Back Extra` | 1 per cloze number in `Text` |
 
 Fields are HTML. Plain text is fine; use `<br>` for a line break, `<b>`, `<i>`, `<ul><li>` for emphasis and lists. A cloze gap is `{{c1::hidden text}}` or, with a hint, `{{c1::hidden text::hint}}`.
 
@@ -70,7 +70,7 @@ Write a `--description` the owner will recognise weeks later ("Ch. 3 organelles 
 - **One fact per card.** If the answer has "and" in it, split it.
 - **Lists become cloze notes**, one gap per item, in a single note: `The three states of matter are {{c1::solid}}, {{c2::liquid}} and {{c3::gas}}.` Never put a whole list on the back of a Basic card.
 - **Questions must have one clear answer.** "What does the mitochondrion produce?" not "Tell me about mitochondria."
-- **Keep answers short**: a word, a phrase, one sentence. Put background in `Extra` (cloze) or after a `<br>` on the back.
+- **Keep answers short**: a word, a phrase, one sentence. Put background in `Back Extra` (cloze) or after a `<br>` on the back.
 - **Give context on the front** so the card stands alone months later: "In HTTP, what does status 304 mean?" not "What does 304 mean?"
 - **Reversed notes only for true pairs** (vocabulary, symbol ↔ name), where recalling in both directions is the point.
 - **Do not invent facts.** Take cards from the material the owner gave you; if you add something from your own knowledge, say so when you report.

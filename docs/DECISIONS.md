@@ -29,3 +29,56 @@ Choices the implementation plan left open, or small departures from it, with the
 **Built-in note types have fixed ids,** so two devices that seed them while offline produce identical rows.
 
 **TypeScript is pinned to 5.9** because typescript-eslint does not yet accept TypeScript 7.
+
+## Slice 2
+
+**A `modified_by` column on every synced table.** The plan breaks conflict ties on device id, which needs the last writer recorded on the row. Later `modified_at` wins; an exact tie goes to the greater `modified_by`. The same merge function runs on the server (for pushes) and on clients (for pulls).
+
+**The outbox holds row references, not row copies.** A push sends each changed row's current state, and the outbox entries are deleted only after the server answers. A row edited again during the request has a later entry and stays queued.
+
+**A pull moves its cursor in the same transaction as the rows it applies,** so an interrupted pull resumes from the last complete page.
+
+**Purged rows are remembered on the server** (`purges` table), both to tell every device to hard-delete them and to refuse a push that would resurrect one from a device that was offline for more than 30 days.
+
+**A whole push is one transaction.** A malformed change rejects the batch and applies none of it.
+
+**Passwords use `node:crypto`'s argon2id** (Node 24.7+), with the standard PHC string format, so there is no native add-on in the image. Verified against a hash from the reference implementation.
+
+**The server and CLI are bundled with esbuild** into two files. The runtime image has no `node_modules`; it idles at about 25 MB.
+
+**"Synced" is reported only after media has been uploaded too,** although media failures never fail a sync. Media downloads are lazy: the first time a card needs a file this device lacks.
+
+**Row-level conflict resolution can leave a note without cards** when one device deletes a note while another edits it later: the edit wins for the note row, the deletion wins for its card rows. The note is then invisible (the browser lists cards). Accepted for v1 along with the plan's stated limitation about concurrent reviews.
+
+**The database-ownership lock is held by the worker, not the page,** so it is released at the same moment as the file handles. Holding it in the page let a reloaded page start a second worker before the first had let go.
+
+## Slice 3
+
+**Imported Anki rows get ids derived from Anki's** (`anki-n-<guid>`, `anki-c-<card id>`). Importing a package again updates notes in place, adds nothing twice, and leaves the scheduling of cards already here alone.
+
+**SM-2 scheduling is converted, not reset.** A review card keeps its due date and interval; stability is set to the interval (FSRS defines stability as the interval at 90% recall) and difficulty is mapped from the ease factor. Cards carrying FSRS memory state keep it exactly. Cards part-way through learning restart as new. The import summary gives the count of each.
+
+**A note type identical to one already here is reused** (ignoring whitespace and quoting in templates). The built-in Cloze type uses Anki's field names (`Text`, `Back Extra`) so stock Anki decks map onto the built-ins.
+
+**The .apkg is read with a small zip reader over `Blob.slice` and the browser's own inflate,** so media files are processed one at a time. The collection itself is loaded into memory to be read by SQLite; a very large collection on a phone is the case to watch.
+
+**The importer has only been run against packages built by the tests** (both format generations, laid out as Anki does). Real exported decks from the owner are still the acceptance test, per the plan.
+
+## Slice 4
+
+**Charts are hand-drawn SVG** following the repo's data-visualisation guidance: the palette was run through its validator on this app's light and dark card surfaces, every chart has hover detail and a table view, and state colours are a fixed categorical order.
+
+**Retention counts only reviews of cards already in the review state,** per week, with "Again" as a miss. Mature means an interval of 21 days or more.
+
+**`dk notes add` is all-or-nothing** and one batch per run; duplicates are skipped rather than failing the batch.
+
+## Status
+
+Built and passing its checks locally: slice 1; slice 2 steps 1–4 (including the production image run locally with two browser profiles syncing through it); slice 3; slice 4 steps 1–2 and the skill file.
+
+Not done, because each needs the owner or the server:
+
+- The storage spike on the Android phone (README, "Testing on the Android phone").
+- Slice 2 step 5: everything in [DEPLOYMENT.md](DEPLOYMENT.md), "One-time server setup", including the first real deploy, the S3 backup and the restore test. `backup.sh` and `restore.sh` have not been run anywhere yet.
+- Slice 3's acceptance test: importing one or two of the owner's real Anki decks.
+- Slice 4 step 3: an agent adding cards over SSH and seeing them on the phone.

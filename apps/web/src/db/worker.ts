@@ -7,6 +7,7 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { BASIC_ID, CLOZE_ID, Collection, DAY_MS, DkError, type Rating, type SqlDriver } from '@dk/core';
 import type { Request, Response, WorkerExtras } from './protocol';
+import { importApkg } from './apkg';
 import { SyncEngine, type MediaFiles } from './syncEngine';
 
 const DB_FILE = '/dk.sqlite3';
@@ -124,6 +125,8 @@ async function open(): Promise<void> {
       if (!file && (await sync.downloadMedia(m.id))) file = await files.read(m.id);
       return file ? new Blob([await file.arrayBuffer()], { type: m.mime }) : null;
     },
+    importApkg: (file, opts) =>
+      importApkg(sqlite3, collection, files, file, opts, (progress) => postMessage({ event: 'progress', progress } satisfies Response)),
     async devSeed(days) {
       const col = collection;
       const spanish = await col.ensureDeckPath('Sample::Spanish');

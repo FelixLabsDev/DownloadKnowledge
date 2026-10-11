@@ -1,6 +1,8 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import * as B from './batches';
 import * as D from './decks';
+import { exportBackup, exportNotesCsv } from './importers/backup';
+import { importRows, type RowImportOptions } from './importers/csv';
 import { migrate, openDb, type Db, type SqlDriver } from './driver';
 import { uuidv7 } from './ids';
 import * as N from './notes';
@@ -114,6 +116,11 @@ export class Collection {
   deleteCards = (ids: string[]) => this.run((c) => N.deleteCards(c, ids));
   changeTags = (noteIds: string[], add: string[], remove: string[]) => this.run((c) => N.changeTags(c, noteIds, add, remove));
   listTags = () => this.run((c) => N.listTags(c.tx));
+
+  // Import and export
+  importRows = (rows: string[][], opts: RowImportOptions) => this.run((c) => importRows(c, rows, opts));
+  exportBackup = () => this.run((c) => exportBackup(c));
+  exportNotesCsv = () => this.run((c) => exportNotesCsv(c));
 
   // Dashboard
   stats = () => this.run((c) => computeStats(c));

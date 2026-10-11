@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DependencyList } from 'react';
-import type { Api, Request, Response, SyncStatus } from './protocol';
+import type { Api, ImportProgress, Request, Response, SyncStatus } from './protocol';
 
 export type DbStatus =
   | { state: 'starting' }
@@ -21,6 +21,7 @@ const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Err
 const changeListeners = new Set<() => void>();
 const statusListeners = new Set<(s: DbStatus) => void>();
 const syncListeners = new Set<(s: SyncStatus) => void>();
+const progressListeners = new Set<(p: ImportProgress) => void>();
 let syncStatus: SyncStatus = { phase: 'idle', pending: 0, lastSyncedAt: null, error: null };
 let status: DbStatus = { state: 'starting' };
 let worker: Worker | null = null;
@@ -49,6 +50,8 @@ function startWorker() {
         setStatus({ state: 'failed', message: msg.message });
         for (const p of pending.values()) p.reject(new ApiError('storage', msg.message));
         pending.clear();
+      } else if (msg.event === 'progress') {
+        for (const l of progressListeners) l(msg.progress);
       } else if (msg.event === 'sync') {
         syncStatus = msg.status;
         for (const l of syncListeners) l(syncStatus);
@@ -108,6 +111,11 @@ export function useSyncStatus(): SyncStatus {
     return () => void syncListeners.delete(set);
   }, []);
   return s;
+}
+
+export function onImportProgress(fn: (p: ImportProgress) => void): () => void {
+  progressListeners.add(fn);
+  return () => void progressListeners.delete(fn);
 }
 
 export function onDbChange(fn: () => void): () => void {

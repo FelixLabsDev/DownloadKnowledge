@@ -51,10 +51,10 @@ export const builtinNoteTypes: BuiltinNoteType[] = [
     id: CLOZE_ID,
     name: 'Cloze',
     kind: 'cloze',
-    fields: ['Text', 'Extra'],
+    fields: ['Text', 'Back Extra'],
     css: CARD_CSS,
     templates: [
-      { id: '00000000-0000-7000-8000-000000000301', name: 'Cloze', front: '{{cloze:Text}}', back: '{{cloze:Text}}<br>\n{{Extra}}', ordinal: 0 },
+      { id: '00000000-0000-7000-8000-000000000301', name: 'Cloze', front: '{{cloze:Text}}', back: '{{cloze:Text}}<br>\n{{Back Extra}}', ordinal: 0 },
     ],
   },
 ];

@@ -6,7 +6,7 @@ The terms below are used with exactly these meanings in code, tests, the UI and 
 |---|---|
 | **Note** | One piece of knowledge: a set of field values plus tags. Users write notes; they never write cards directly. Table `notes`. |
 | **Note type** | Defines a note's fields, its templates and one shared CSS block. Kind is `standard` or `cloze`. Built in: Basic, Basic (and reversed card), Cloze. Table `note_types`. |
-| **Field** | A named slot on a note type (`Front`, `Back`, `Text`, `Extra`). A note holds one HTML value per field. |
+| **Field** | A named slot on a note type (`Front`, `Back`, `Text`, `Back Extra`). A note holds one HTML value per field. |
 | **Template** | A front and back HTML layout belonging to a note type. Each template of a standard note type generates one card per note. Table `templates`. |
 | **Cloze** | A deletion written `{{c1::answer}}` or `{{c1::answer::hint}}` inside a field. Each distinct cloze index generates one card. |
 | **Card** | The thing that is scheduled and reviewed: one note seen through one template (or one cloze index). A card lives in a deck and carries the FSRS state. Table `cards`. |

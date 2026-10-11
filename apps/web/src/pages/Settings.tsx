@@ -46,8 +46,9 @@ export function SettingsPage() {
               <option value="dark">Dark</option>
             </Select>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground md:hidden">
+          <p className="mt-3 flex flex-col gap-1 text-sm md:hidden">
             <Link to="/note-types" className="text-primary underline">Edit note types and templates</Link>
+            <Link to="/import" className="text-primary underline">Import and export</Link>
           </p>
         </Card>
 
