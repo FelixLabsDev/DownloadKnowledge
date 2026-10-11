@@ -1,0 +1,24 @@
+# Runs the exact production image on the development machine:
+#
+#   docker compose -f deploy/compose.yml -f deploy/compose.local.yml up --build
+#
+# Then open http://localhost:5180 and sign in with the password "local-password".
+# Data goes to a named volume, so it does not mix with `pnpm dev` (./.data).
+services:
+  dk:
+    image: downloadknowledge:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    restart: 'no'
+    environment:
+      # argon2id hash of "local-password". For this machine only; production reads its own from .env.
+      # ($ is doubled because compose would otherwise treat it as a variable.)
+      DK_PASSWORD_HASH: '$$argon2id$$v=19$$m=19456,t=2,p=1$$l9lok37VZF+ccNZNMYLOrw$$NtBHPne4osgFOH4yBMd3JDEBzI2lK9x4AkwF5irudd8'
+    volumes:
+      - dk-local-data:/data
+
+volumes:
+  dk-local-data:

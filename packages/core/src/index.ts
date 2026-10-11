@@ -10,6 +10,7 @@ export { DkError, deckPath, type DeckPatch } from './decks';
 export type { AddNoteInput, CardRow, NoteTypeWithTemplates, SearchResult } from './notes';
 export type { Counts, DeckNode, StudyCard, StudyStep } from './study';
 export { Collection, type CollectionOptions } from './collection';
+export { AGENT_TAG, type BatchSummary, type BulkAddOptions, type BulkAddResult, type BulkNote } from './batches';
 export type { Ctx } from './store';
 export { put, getMeta, setMeta } from './store';
 export { SyncError, type Change, type PullResponse, type PushRequest, type PushResponse, type SyncResult, type SyncTransport, type WireRow } from './sync';

@@ -1,0 +1,84 @@
+name: Deploy
+
+# A push to main: run every check, build the image with the commit baked in,
+# push it to GHCR, then wait for the server to report that commit. The server
+# pulls by itself (a systemd timer, every minute); nothing here connects to it.
+# If a check fails, no image is pushed and the server keeps the previous one.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm --filter @dk/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
+  image:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: |
+            ghcr.io/felixlabsdev/downloadknowledge:latest
+            ghcr.io/felixlabsdev/downloadknowledge:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  verify:
+    needs: image
+    runs-on: ubuntu-latest
+    # Set the repository variable DK_DOMAIN (e.g. cards.felixlabs.net) once the server is set up.
+    if: vars.DK_DOMAIN != ''
+    steps:
+      - name: Wait for the server to run this commit
+        run: |
+          for i in $(seq 1 60); do
+            body=$(curl -fsS --max-time 5 "https://${{ vars.DK_DOMAIN }}/api/health" || true)
+            echo "attempt $i: $body"
+            if echo "$body" | grep -q '"commit":"${{ github.sha }}"'; then
+              echo "Live."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "The server did not report commit ${{ github.sha }} within five minutes."
+          exit 1

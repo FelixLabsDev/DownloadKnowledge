@@ -1,0 +1,9 @@
+[Unit]
+Description=DownloadKnowledge: nightly backup
+After=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/apps/downloadknowledge
+ExecStart=/home/ubuntu/apps/downloadknowledge/backup.sh

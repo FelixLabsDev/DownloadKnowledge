@@ -1,0 +1,27 @@
+# Production. On the server this file lives in /home/ubuntu/apps/downloadknowledge
+# beside a .env file (see .env.example). The server only ever pulls this image;
+# it never builds.
+#
+# To roll back, set DK_TAG=<commit sha> in .env and run: docker compose up -d
+services:
+  dk:
+    image: ghcr.io/felixlabsdev/downloadknowledge:${DK_TAG:-latest}
+    container_name: dk
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      # Only on localhost: Caddy is the way in.
+      - '127.0.0.1:${DK_PORT:-5180}:8787'
+    volumes:
+      - ./data:/data
+    # The host has about 200 MB to spare. A fault here must not take the box down.
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

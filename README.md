@@ -1,18 +1,19 @@
 # DownloadKnowledge
 
-A personal spaced-repetition learning tool in the style of Anki, for one user, on an Android phone and desktop browsers. It works offline and (from slice 2) syncs through a self-hosted server.
+A personal spaced-repetition learning tool in the style of Anki, for one user, on an Android phone and desktop browsers. It works offline and syncs through a self-hosted server.
 
 - The full brief: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
 - The vocabulary used in code and UI: [docs/GLOSSARY.md](docs/GLOSSARY.md)
 - Decisions made while building: [docs/DECISIONS.md](docs/DECISIONS.md)
+- Getting it onto the server: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Status
 
-Slice 1 (local-only app in the browser) is built. Slices 2–4 (server and sync, import/export, dashboard and agent tool) are not.
+See the end of [docs/DECISIONS.md](docs/DECISIONS.md) for what is built and what is not.
 
 ## Requirements
 
-Node 24, pnpm 9. Docker Desktop is needed from slice 2.
+Node 24.7 or later, pnpm 9. Docker Desktop only to run the production image locally.
 
 ```
 pnpm install
@@ -23,24 +24,25 @@ pnpm --filter @dk/web exec playwright install chromium   # once, for the browser
 
 | Command | Does |
 |---|---|
-| `pnpm dev` | Runs the web app at http://localhost:5173 with hot reload |
+| `pnpm dev` | Runs the web app (http://localhost:5173) and the server (port 8787) together with hot reload. The server keeps its data in `./.data/`; the sign-in password is `dev` |
 | `pnpm test` | Unit tests (Vitest) across all packages |
-| `pnpm test:e2e` | Browser tests (Playwright) against the production build, including a browser restart with the network off |
+| `pnpm test:e2e` | Browser tests (Playwright) against the production build served by the real server: two devices syncing, airplane mode, a browser restart with the network off |
+| `docker compose -f deploy/compose.yml -f deploy/compose.local.yml up --build` | Builds and runs the exact production image at http://localhost:5180 (password `local-password`) |
 | `pnpm typecheck`, `pnpm lint` | Static checks |
 | `pnpm build` | Production build of the web app into `apps/web/dist` |
 
-`pnpm test:e2e` builds the app and serves it on port 4173 by itself. The service worker (offline app shell) only exists in the production build, not under `pnpm dev`; to try it by hand run `pnpm --filter @dk/web build` and `pnpm --filter @dk/web preview`.
+`pnpm test:e2e` builds the app and serves it on port 4173 by itself, with a throwaway data directory. The service worker (offline app shell) only exists in the production build, not under `pnpm dev`; to try it by hand run `pnpm --filter @dk/web build`, then `PORT=4173 pnpm --filter @dk/server exec tsx src/main.ts`, and open http://localhost:4173.
 
 ## Layout
 
 ```
-packages/core          domain model, schema, scheduler wrapper, card generation, template rendering.
-                       No DOM, no Node APIs (enforced by lint).
-packages/storage-node  SQLite driver for Node (node:sqlite), used by tests and later the server and CLI
+packages/core          domain model, schema, scheduler wrapper, card generation, template rendering,
+                       sync logic. No DOM, no Node APIs (enforced by lint).
+packages/storage-node  SQLite driver for Node (node:sqlite), used by the server, the CLI and tests
 apps/web               the PWA
-apps/server            (slice 2) API, sync, media, auth, the dk CLI
-deploy/                (slice 2) Dockerfile, compose files, server-side scripts
-skills/dk-cards/       (slice 4) the agent skill
+apps/server            API, sync, media, auth, and the dk CLI
+deploy/                Dockerfile, compose files, server-side scripts, Caddy snippet
+skills/dk-cards/       the agent skill
 ```
 
 ## Testing on the Android phone before deploying

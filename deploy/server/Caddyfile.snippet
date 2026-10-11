@@ -1,0 +1,8 @@
+# Site block to add to /etc/caddy/Caddyfile. Replace the host name and the port
+# (DK_PORT in .env). Show this to the owner and get a go-ahead before touching
+# the Caddyfile; back it up, run `caddy validate`, then reload (never restart).
+
+cards.felixlabs.net {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:5180
+}

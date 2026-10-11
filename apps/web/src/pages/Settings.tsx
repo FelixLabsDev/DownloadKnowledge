@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { SyncCard } from '@/components/Sync';
 import { Button, Card, Label, PageHeader, Select, useToast } from '@/components/ui';
 import { api, useLive } from '@/db/client';
 import { applyTheme, formatBytes, getTheme, type Theme } from '@/lib/utils';
@@ -26,6 +27,7 @@ export function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <div className="flex flex-col gap-4">
+        <SyncCard />
         <Card className="p-4">
           <h2 className="mb-3 font-medium">Appearance</h2>
           <div className="flex max-w-xs flex-col gap-1.5">

@@ -1,8 +1,7 @@
 name: CI
 
+# Checks for pull requests. Pushes to main run the same checks in deploy.yml.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:

@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import * as B from './batches';
 import * as D from './decks';
 import { migrate, openDb, type Db, type SqlDriver } from './driver';
 import { uuidv7 } from './ids';
@@ -112,6 +113,11 @@ export class Collection {
   deleteCards = (ids: string[]) => this.run((c) => N.deleteCards(c, ids));
   changeTags = (noteIds: string[], add: string[], remove: string[]) => this.run((c) => N.changeTags(c, noteIds, add, remove));
   listTags = () => this.run((c) => N.listTags(c.tx));
+
+  // Agent batches (see batches.ts)
+  bulkAddNotes = (items: B.BulkNote[], opts: B.BulkAddOptions) => this.run((c) => B.bulkAddNotes(c, items, opts));
+  listBatches = () => this.run((c) => B.listBatches(c));
+  undoBatch = (id: string) => this.run((c) => B.undoBatch(c, id));
 
   // Media
   /** Records a media file (id is its sha256). The bytes are stored by the platform, not here. */

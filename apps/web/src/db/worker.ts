@@ -7,6 +7,7 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { Collection, DkError, type SqlDriver } from '@dk/core';
 import type { Request, Response, WorkerExtras } from './protocol';
+import { SyncEngine, type MediaFiles } from './syncEngine';
 
 const DB_FILE = '/dk.sqlite3';
 const MEDIA_DIR = 'dk-media';
@@ -29,11 +30,35 @@ async function open(): Promise<void> {
       }) as unknown[][];
     },
   };
+  // Filled in below; the collection must exist before the engine can.
+  const ref: { engine?: SyncEngine } = {};
   collection = await Collection.open(driver, {
-    onChange: () => postMessage({ event: 'change' } satisfies Response),
+    onChange: () => {
+      postMessage({ event: 'change' } satisfies Response);
+      void ref.engine?.onLocalChange();
+    },
   });
 
   const mediaDir = async () => (await navigator.storage.getDirectory()).getDirectoryHandle(MEDIA_DIR, { create: true });
+  const files: MediaFiles = {
+    async has(hash) {
+      return (await mediaDir()).getFileHandle(hash).then(() => true, () => false);
+    },
+    async read(hash) {
+      try {
+        return await (await (await mediaDir()).getFileHandle(hash)).getFile();
+      } catch {
+        return null;
+      }
+    },
+    async write(hash, bytes) {
+      const w = await (await (await mediaDir()).getFileHandle(hash, { create: true })).createWritable();
+      await w.write(bytes);
+      await w.close();
+    },
+  };
+  const sync = new SyncEngine(collection, files, (status) => postMessage({ event: 'sync', status } satisfies Response));
+  ref.engine = sync;
 
   extras = {
     async storageInfo() {
@@ -73,24 +98,25 @@ async function open(): Promise<void> {
       const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
       const ext = (/\.([a-z0-9]{1,5})$/i.exec(name)?.[1] ?? blob.type.split('/')[1] ?? 'bin').toLowerCase().replace('jpeg', 'jpg');
       const filename = `${hash.slice(0, 16)}.${ext}`;
-      const file = await (await mediaDir()).getFileHandle(hash, { create: true });
-      const w = await file.createWritable();
-      await w.write(bytes);
-      await w.close();
+      await files.write(hash, bytes);
       await collection.registerMedia({ id: hash, filename, mime: blob.type || 'application/octet-stream', size: bytes.byteLength });
       return filename;
     },
     async readMedia(filename) {
       const m = await collection.findMedia(filename);
       if (!m) return null;
-      try {
-        const file = await (await (await mediaDir()).getFileHandle(m.id)).getFile();
-        return new Blob([await file.arrayBuffer()], { type: m.mime });
-      } catch {
-        return null; // Known to the database but not downloaded to this device yet.
-      }
+      // Media is fetched lazily: the first time a card needs a file this device does not have.
+      let file = await files.read(m.id);
+      if (!file && (await sync.downloadMedia(m.id))) file = await files.read(m.id);
+      return file ? new Blob([await file.arrayBuffer()], { type: m.mime }) : null;
     },
+    async syncNow() {
+      await sync.syncNow();
+      return sync.getStatus();
+    },
+    syncStatus: async () => sync.getStatus(),
   };
+  sync.start();
 }
 
 const ready = open();

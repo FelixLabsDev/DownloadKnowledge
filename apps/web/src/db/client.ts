@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DependencyList } from 'react';
-import type { Api, Request, Response } from './protocol';
+import type { Api, Request, Response, SyncStatus } from './protocol';
 
 export type DbStatus =
   | { state: 'starting' }
@@ -20,6 +20,8 @@ export class ApiError extends Error {
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 const changeListeners = new Set<() => void>();
 const statusListeners = new Set<(s: DbStatus) => void>();
+const syncListeners = new Set<(s: SyncStatus) => void>();
+let syncStatus: SyncStatus = { phase: 'idle', pending: 0, lastSyncedAt: null, error: null };
 let status: DbStatus = { state: 'starting' };
 let worker: Worker | null = null;
 let nextId = 1;
@@ -42,6 +44,9 @@ function startWorker() {
         setStatus({ state: 'failed', message: msg.message });
         for (const p of pending.values()) p.reject(new ApiError('storage', msg.message));
         pending.clear();
+      } else if (msg.event === 'sync') {
+        syncStatus = msg.status;
+        for (const l of syncListeners) l(syncStatus);
       } else for (const l of changeListeners) l();
       return;
     }
@@ -54,6 +59,12 @@ function startWorker() {
   worker.onerror = (e) => setStatus({ state: 'failed', message: e.message || 'The database worker failed to start.' });
   for (const r of queued) worker.postMessage(r);
   queued = [];
+  // Sync when connectivity returns and when the app comes back to the foreground.
+  // (The worker listens for 'online' too, but not every browser delivers it there.)
+  const wake = () => void api.syncNow().catch(() => undefined);
+  window.addEventListener('online', wake);
+  window.addEventListener('offline', wake);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
 }
 
 /**
@@ -98,6 +109,16 @@ export function useDbStatus(): DbStatus {
     set(status);
     statusListeners.add(set);
     return () => void statusListeners.delete(set);
+  }, []);
+  return s;
+}
+
+export function useSyncStatus(): SyncStatus {
+  const [s, set] = useState(syncStatus);
+  useEffect(() => {
+    set(syncStatus);
+    syncListeners.add(set);
+    return () => void syncListeners.delete(set);
   }, []);
   return s;
 }

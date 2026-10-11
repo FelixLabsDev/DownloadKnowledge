@@ -2,6 +2,7 @@ import { Layers, Plus, Search, Settings as SettingsIcon, Shapes } from 'lucide-r
 import type { ReactNode } from 'react';
 import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { SyncDot, SyncLine } from './components/Sync';
 import { Button, Card } from './components/ui';
 import { useDbStatus } from './db/client';
 import { cn } from './lib/utils';
@@ -76,6 +77,9 @@ function Shell() {
               {label}
             </NavLink>
           ))}
+          <NavLink to="/settings" className="mt-auto rounded-md px-3 py-2 hover:bg-muted" aria-label="Sync status">
+            <SyncLine />
+          </NavLink>
         </nav>
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl px-4 py-5 md:px-8 md:py-8">
@@ -95,7 +99,10 @@ function Shell() {
                 cn('flex flex-1 flex-col items-center gap-1 py-2.5 text-xs text-muted-foreground', isActive && 'text-primary')
               }
             >
-              <Icon className="size-5" />
+              <span className="relative">
+                <Icon className="size-5" />
+                {to === '/settings' && <SyncDot className="absolute -right-1.5 -top-0.5" />}
+              </span>
               {label}
             </NavLink>
           ))}

@@ -11,7 +11,17 @@ export type Response =
   | { id: number; ok: false; error: { code: string; message: string } }
   | { event: 'ready' }
   | { event: 'failed'; message: string }
-  | { event: 'change' };
+  | { event: 'change' }
+  | { event: 'sync'; status: SyncStatus };
+
+export interface SyncStatus {
+  /** `offline` also covers "the server cannot be reached". */
+  phase: 'idle' | 'syncing' | 'offline' | 'signed-out' | 'error';
+  /** Local changes not yet on the server. */
+  pending: number;
+  lastSyncedAt: number | null;
+  error: string | null;
+}
 
 export interface StorageInfo {
   vfs: string;
@@ -33,10 +43,12 @@ export interface WorkerExtras {
   /** Stores a file and returns the filename to reference from a field. */
   addMedia(blob: Blob, name: string): Promise<string>;
   readMedia(filename: string): Promise<Blob | null>;
+  syncNow(): Promise<SyncStatus>;
+  syncStatus(): Promise<SyncStatus>;
 }
 
 type Fn = (...args: never[]) => unknown;
 type Methods<T> = { [K in keyof T as T[K] extends Fn ? K : never]: T[K] };
 
 /** What the page can call: the collection's methods plus the worker extras. */
-export type Api = Omit<Methods<Collection>, 'run'> & WorkerExtras;
+export type Api = Omit<Methods<Collection>, 'run' | 'sync' | 'applyPush' | 'readChanges' | 'purgeDeleted'> & WorkerExtras;

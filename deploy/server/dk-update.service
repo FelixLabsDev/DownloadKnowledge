@@ -1,0 +1,14 @@
+[Unit]
+Description=DownloadKnowledge: pull the latest image and apply it
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/apps/downloadknowledge
+# Compose recreates the container only when the image actually changed.
+ExecStart=/usr/bin/docker compose pull --quiet
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+# Old images would otherwise fill the disk (7.4 GB free at survey time).
+ExecStart=/usr/bin/docker image prune -f --filter label=org.opencontainers.image.source=https://github.com/FelixLabsDev/DownloadKnowledge
