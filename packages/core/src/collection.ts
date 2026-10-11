@@ -1,11 +1,11 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import * as D from './decks';
 import { migrate, openDb, type Db, type SqlDriver } from './driver';
 import { uuidv7 } from './ids';
 import * as N from './notes';
 import type { Rating } from './scheduler';
-import { cards, type Card, type Deck, type Note } from './schema';
-import { getMeta, setMeta, type Ctx } from './store';
+import { cards, media, type Card, type Deck, type Media, type Note } from './schema';
+import { getMeta, put, setMeta, type Ctx } from './store';
 import * as S from './study';
 
 export interface CollectionOptions {
@@ -111,6 +111,25 @@ export class Collection {
   deleteCards = (ids: string[]) => this.run((c) => N.deleteCards(c, ids));
   changeTags = (noteIds: string[], add: string[], remove: string[]) => this.run((c) => N.changeTags(c, noteIds, add, remove));
   listTags = () => this.run((c) => N.listTags(c.tx));
+
+  // Media
+  /** Records a media file (id is its sha256). The bytes are stored by the platform, not here. */
+  registerMedia = (m: { id: string; filename: string; mime: string; size: number }): Promise<Media> =>
+    this.run(async (c) => {
+      const existing = (await c.tx.select().from(media).where(eq(media.id, m.id)))[0];
+      if (existing && existing.deletedAt === null && existing.filename === m.filename) return existing;
+      return put(c, 'media', { ...existing, ...m, deletedAt: null });
+    });
+  findMedia = (filename: string): Promise<Media | null> =>
+    this.run(async (c) => {
+      const rows = await c.tx
+        .select()
+        .from(media)
+        .where(and(eq(media.filename, filename), isNull(media.deletedAt)))
+        .orderBy(desc(media.modifiedAt))
+        .limit(1);
+      return rows[0] ?? null;
+    });
 
   // Study
   nextStudyStep = (deckId: string) => this.run((c) => S.nextStudyStep(c, deckId));

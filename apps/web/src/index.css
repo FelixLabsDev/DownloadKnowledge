@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* shadcn/ui token scheme. Light values on :root, dark values under .dark. */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #0f172a;
+  --accent: #eff6ff;
+  --destructive: #dc2626;
+  --ring: #3b82f6;
+  --state-new: #2563eb;
+  --state-learning: #c2410c;
+  --state-review: #15803d;
+  --rate-again: #dc2626;
+  --rate-hard: #b45309;
+  --rate-good: #15803d;
+  --rate-easy: #2563eb;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0b1120;
+  --foreground: #e2e8f0;
+  --card: #131c2e;
+  --muted: #1b2538;
+  --muted-foreground: #94a3b8;
+  --border: #243044;
+  --input: #334155;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+  --accent: #172554;
+  --destructive: #ef4444;
+  --ring: #60a5fa;
+  --state-new: #60a5fa;
+  --state-learning: #fb923c;
+  --state-review: #4ade80;
+  --rate-again: #f87171;
+  --rate-hard: #fbbf24;
+  --rate-good: #4ade80;
+  --rate-easy: #60a5fa;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-destructive: var(--destructive);
+  --color-ring: var(--ring);
+  --color-state-new: var(--state-new);
+  --color-state-learning: var(--state-learning);
+  --color-state-review: var(--state-review);
+  --color-rate-again: var(--rate-again);
+  --color-rate-hard: var(--rate-hard);
+  --color-rate-good: var(--rate-good);
+  --color-rate-easy: var(--rate-easy);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  button:not(:disabled),
+  [role='button'] {
+    cursor: pointer;
+  }
+  dialog::backdrop {
+    background: rgb(2 6 23 / 0.6);
+  }
+}
+
+/* The field editor is contentEditable; give its content sensible defaults. */
+.field-editor {
+  min-height: 2.75rem;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.field-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+}
+.field-editor ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.field-editor ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.field-editor img {
+  max-width: 100%;
+  max-height: 14rem;
+  display: inline-block;
+}
