@@ -1,4 +1,4 @@
-import { Layers, Plus, Search, Settings as SettingsIcon, Shapes } from 'lucide-react';
+import { ChartNoAxesColumn, Layers, Plus, Search, Settings as SettingsIcon, Shapes } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -11,12 +11,14 @@ import { DecksPage } from './pages/Decks';
 import { NoteEditorPage } from './pages/NoteEditor';
 import { NoteTypesPage } from './pages/NoteTypes';
 import { SettingsPage } from './pages/Settings';
+import { StatsPage } from './pages/Stats';
 import { StudyPage } from './pages/Study';
 
 const NAV = [
   { to: '/', label: 'Decks', icon: Layers },
   { to: '/add', label: 'Add', icon: Plus },
   { to: '/browse', label: 'Browse', icon: Search },
+  { to: '/stats', label: 'Stats', icon: ChartNoAxesColumn },
   { to: '/note-types', label: 'Note types', icon: Shapes, desktopOnly: true },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -139,6 +141,7 @@ export function App() {
         <Route path="add" element={<NoteEditorPage />} />
         <Route path="note/:noteId" element={<NoteEditorPage />} />
         <Route path="browse" element={<BrowsePage />} />
+        <Route path="stats" element={<StatsPage />} />
         <Route path="note-types" element={<NoteTypesPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

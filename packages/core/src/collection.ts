@@ -7,6 +7,7 @@ import * as N from './notes';
 import type { Rating } from './scheduler';
 import { cards, media, type Card, type Deck, type Media, type Note } from './schema';
 import { getMeta, put, setMeta, type Ctx } from './store';
+import { computeStats } from './stats';
 import * as S from './study';
 import * as Y from './sync';
 
@@ -113,6 +114,9 @@ export class Collection {
   deleteCards = (ids: string[]) => this.run((c) => N.deleteCards(c, ids));
   changeTags = (noteIds: string[], add: string[], remove: string[]) => this.run((c) => N.changeTags(c, noteIds, add, remove));
   listTags = () => this.run((c) => N.listTags(c.tx));
+
+  // Dashboard
+  stats = () => this.run((c) => computeStats(c));
 
   // Agent batches (see batches.ts)
   bulkAddNotes = (items: B.BulkNote[], opts: B.BulkAddOptions) => this.run((c) => B.bulkAddNotes(c, items, opts));

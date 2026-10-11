@@ -150,3 +150,36 @@ test('a second tab is told the app is open elsewhere, then takes over', async ({
   await page.close();
   await expect(second.getByRole('link', { name: 'Spanish', exact: true })).toBeVisible();
 });
+
+test('reloading repeatedly always reopens the database', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  for (let i = 0; i < 6; i++) {
+    await addBasic(page, `card ${i}`, 'x');
+    // Reload straight after a write, while the previous worker may still hold the files.
+    await page.reload();
+    await expect(page.getByRole('textbox', { name: 'Front' })).toBeVisible();
+  }
+  await page.goto('/');
+  await expect(page.getByTestId('due-summary')).toHaveText('6 cards to study today.');
+});
+
+test('stats: tiles and charts reflect reviews', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await addBasic(page, 'perro', 'dog');
+  await addBasic(page, 'gato', 'cat');
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Spanish', exact: true }).click();
+  await page.getByRole('button', { name: 'Show answer' }).click();
+  await page.getByRole('button', { name: /Easy/ }).click();
+  await expect(card(page)).toHaveText('gato');
+
+  await page.goto('/stats');
+  await expect(page.getByTestId('tile-reviewed-today')).toHaveText('1');
+  await expect(page.getByTestId('tile-streak')).toHaveText('1 day');
+  await expect(page.getByRole('img', { name: /Bar chart of cards due/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /Heatmap of reviews/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Spanish: 1 new, 0 learning, 1 young, 0 mature, 0 suspended' })).toBeVisible();
+  // Every chart has a table view of the same numbers.
+  await page.getByRole('button', { name: 'Table' }).last().click();
+  await expect(page.getByRole('row', { name: /Spanish 1 0 1 0 0 2/ })).toBeVisible();
+});

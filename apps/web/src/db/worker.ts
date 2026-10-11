@@ -5,7 +5,7 @@
  * message; see client.ts.
  */
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { Collection, DkError, type SqlDriver } from '@dk/core';
+import { BASIC_ID, CLOZE_ID, Collection, DAY_MS, DkError, type Rating, type SqlDriver } from '@dk/core';
 import type { Request, Response, WorkerExtras } from './protocol';
 import { SyncEngine, type MediaFiles } from './syncEngine';
 
@@ -17,7 +17,18 @@ let extras: WorkerExtras;
 
 async function open(): Promise<void> {
   const sqlite3 = await sqlite3InitModule();
-  const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'dk-pool', directory: '/dk-sqlite', initialCapacity: 8 });
+  // A worker from the page's previous life (a reload) can take a moment to let go of its file handles.
+  let pool: Awaited<ReturnType<typeof sqlite3.installOpfsSAHPoolVfs>> | undefined;
+  for (let attempt = 0; !pool; attempt++) {
+    try {
+      // forceReinitIfPreviouslyFailed is supported by the library but missing from its type definitions.
+      const options = { name: 'dk-pool', directory: '/dk-sqlite', initialCapacity: 8, forceReinitIfPreviouslyFailed: true };
+      pool = await sqlite3.installOpfsSAHPoolVfs(options);
+    } catch (e) {
+      if (attempt >= 20) throw e;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
   const db = new pool.OpfsSAHPoolDb(DB_FILE);
   const driver: SqlDriver = {
     async exec(sql, params) {
@@ -32,7 +43,10 @@ async function open(): Promise<void> {
   };
   // Filled in below; the collection must exist before the engine can.
   const ref: { engine?: SyncEngine } = {};
+  // Only devSeed moves this: it lets months of study be simulated in seconds.
+  let clockOffset = 0;
   collection = await Collection.open(driver, {
+    now: () => Date.now() + clockOffset,
     onChange: () => {
       postMessage({ event: 'change' } satisfies Response);
       void ref.engine?.onLocalChange();
@@ -110,6 +124,43 @@ async function open(): Promise<void> {
       if (!file && (await sync.downloadMedia(m.id))) file = await files.read(m.id);
       return file ? new Blob([await file.arrayBuffer()], { type: m.mime }) : null;
     },
+    async devSeed(days) {
+      const col = collection;
+      const spanish = await col.ensureDeckPath('Sample::Spanish');
+      const capitals = await col.ensureDeckPath('Sample::Capitals');
+      const biology = await col.ensureDeckPath('Sample biology');
+      await col.updateDeck(spanish.id, { newPerDay: 4 });
+      await col.updateDeck(capitals.id, { newPerDay: 3 });
+      await col.updateDeck(biology.id, { newPerDay: 2 });
+      clockOffset = -days * DAY_MS;
+      let notes = 0;
+      for (let i = 1; i <= 150; i++, notes++) await col.addNote({ noteTypeId: BASIC_ID, deckId: spanish.id, fields: [`palabra ${i}`, `word ${i}`], tags: ['sample'] });
+      for (let i = 1; i <= 80; i++, notes++) await col.addNote({ noteTypeId: CLOZE_ID, deckId: capitals.id, fields: [`The capital of country ${i} is {{c1::city ${i}}}.`, ''], tags: ['sample'] });
+      for (let i = 1; i <= 60; i++, notes++) await col.addNote({ noteTypeId: BASIC_ID, deckId: biology.id, fields: [`Term ${i}`, `Definition ${i}`], tags: ['sample'] });
+      const sample = await col.ensureDeckPath('Sample');
+      let reviews = 0;
+      for (let day = days; day >= 0; day--) {
+        if (day > 0 && Math.random() < 0.12) continue; // A day off now and then.
+        clockOffset = -day * DAY_MS;
+        for (const deckId of [sample.id, biology.id]) {
+          for (let guard = 0; guard < 120; guard++) {
+            const step = await col.nextStudyStep(deckId);
+            if (!step.card) {
+              if (step.waitUntil === null) break;
+              clockOffset += step.waitUntil - (Date.now() + clockOffset);
+              continue;
+            }
+            const roll = Math.random();
+            const rating: Rating = roll < 0.09 ? 1 : roll < 0.2 ? 2 : roll < 0.88 ? 3 : 4;
+            await col.answerCard(step.card.card.id, rating, 4000 + Math.random() * 8000);
+            clockOffset += 9000;
+            reviews++;
+          }
+        }
+      }
+      clockOffset = 0;
+      return { notes, reviews };
+    },
     async syncNow() {
       await sync.syncNow();
       return sync.getStatus();
@@ -119,7 +170,24 @@ async function open(): Promise<void> {
   sync.start();
 }
 
-const ready = open();
+/**
+ * Only one worker may own the database. This worker holds a Web Lock for as
+ * long as it lives, so the lock and the file handles are released together.
+ * If another tab has it, say so and take over when that tab goes away.
+ */
+const ready = new Promise<void>((resolve, reject) => {
+  const openAndHold = () => new Promise<never>(() => void open().then(resolve, reject));
+  if (!navigator.locks) {
+    void open().then(resolve, reject);
+    return;
+  }
+  void navigator.locks.request('dk-db', { ifAvailable: true }, (lock) => {
+    if (lock) return openAndHold();
+    postMessage({ event: 'blocked' } satisfies Response);
+    void navigator.locks.request('dk-db', openAndHold);
+    return undefined;
+  });
+});
 
 self.onmessage = async (e: MessageEvent<Request>) => {
   const { id, method, args } = e.data;

@@ -25,6 +25,19 @@
   --rate-hard: #b45309;
   --rate-good: #15803d;
   --rate-easy: #2563eb;
+  /* Charts: categorical slots in fixed order, a one-hue sequential ramp, and a recessive grid.
+     Validated on this surface with the dataviz palette validator, light and dark. */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-grid: #e8edf3;
+  --viz-seq-0: #edf1f5;
+  --viz-seq-1: #b7d3f6;
+  --viz-seq-2: #6da7ec;
+  --viz-seq-3: #2a78d6;
+  --viz-seq-4: #104281;
   color-scheme: light;
 }
 
@@ -50,6 +63,17 @@
   --rate-hard: #fbbf24;
   --rate-good: #4ade80;
   --rate-easy: #60a5fa;
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-grid: #1f2a3d;
+  --viz-seq-0: #1b2538;
+  --viz-seq-1: #104281;
+  --viz-seq-2: #1c5cab;
+  --viz-seq-3: #3987e5;
+  --viz-seq-4: #9ec5f4;
   color-scheme: dark;
 }
 

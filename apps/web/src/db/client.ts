@@ -26,6 +26,7 @@ let status: DbStatus = { state: 'starting' };
 let worker: Worker | null = null;
 let nextId = 1;
 let queued: Request[] = [];
+let blockedTimer: ReturnType<typeof setTimeout> | undefined;
 
 function setStatus(s: DbStatus) {
   status = s;
@@ -37,7 +38,11 @@ function startWorker() {
   worker.onmessage = (e: MessageEvent<Response>) => {
     const msg = e.data;
     if ('event' in msg) {
-      if (msg.event === 'ready') {
+      if (msg.event === 'blocked') {
+        // After a reload the previous worker lingers briefly; only call it "another tab" if it lasts.
+        blockedTimer = setTimeout(() => status.state === 'starting' && setStatus({ state: 'blocked' }), 1500);
+      } else if (msg.event === 'ready') {
+        clearTimeout(blockedTimer);
         setStatus({ state: 'ready' });
         void navigator.storage?.persist?.();
       } else if (msg.event === 'failed') {
@@ -67,27 +72,9 @@ function startWorker() {
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
 }
 
-/**
- * Only one tab may own the database. We hold a Web Lock for the life of the
- * page; a second tab shows "open in another tab" and takes over automatically
- * when the first one closes.
- */
+/** Starts the database worker. The worker itself arranges that only one tab owns the database. */
 export function startDb() {
-  if (worker || status.state === 'blocked') return;
-  if (!navigator.locks) {
-    startWorker();
-    return;
-  }
-  const hold = () => new Promise<void>(() => startWorker());
-  void navigator.locks.request('dk-db', { ifAvailable: true }, (lock) => {
-    if (lock) return hold();
-    setStatus({ state: 'blocked' });
-    void navigator.locks.request('dk-db', () => {
-      setStatus({ state: 'starting' });
-      return hold();
-    });
-    return undefined;
-  });
+  if (!worker) startWorker();
 }
 
 /** The data API. Every call is a message to the worker. */

@@ -20,7 +20,7 @@ export function SettingsPage() {
   const [theme, setTheme] = useState<Theme>(getTheme());
   const info = useLive(() => api.storageInfo(), []);
   const probe = useLive(() => api.probeRead(), []);
-  const { fail } = useToast();
+  const { toast, fail } = useToast();
   const s = info.data;
 
   return (
@@ -84,6 +84,18 @@ export function SettingsPage() {
             {probe.data?.length === 0 && <li className="text-muted-foreground">No test rows yet.</li>}
           </ul>
         </Card>
+
+        {(import.meta.env.DEV || localStorage.getItem('dk-dev') === '1') && (
+          <Card className="p-4">
+            <h2 className="mb-1 font-medium">Developer</h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Adds three sample decks (290 notes, tagged <code>sample</code>) and simulates four months of daily study, so the stats have something to show. Takes a little while. Delete the "Sample" decks to remove it all.
+            </p>
+            <Button variant="outline" data-testid="dev-seed" onClick={() => api.devSeed(120).then((r) => toast(`Added ${r.notes} notes and ${r.reviews} simulated reviews.`), fail)}>
+              Add sample data
+            </Button>
+          </Card>
+        )}
 
         <p className="text-xs text-muted-foreground">Version {__COMMIT__.slice(0, 7)}</p>
       </div>

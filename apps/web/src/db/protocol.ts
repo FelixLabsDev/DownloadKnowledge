@@ -10,6 +10,8 @@ export type Response =
   | { id: number; ok: true; result: unknown }
   | { id: number; ok: false; error: { code: string; message: string } }
   | { event: 'ready' }
+  /** Another tab owns the database; this worker is waiting for it. */
+  | { event: 'blocked' }
   | { event: 'failed'; message: string }
   | { event: 'change' }
   | { event: 'sync'; status: SyncStatus };
@@ -43,6 +45,8 @@ export interface WorkerExtras {
   /** Stores a file and returns the filename to reference from a field. */
   addMedia(blob: Blob, name: string): Promise<string>;
   readMedia(filename: string): Promise<Blob | null>;
+  /** Development aid: fills the collection with sample decks and months of simulated study. */
+  devSeed(days: number): Promise<{ notes: number; reviews: number }>;
   syncNow(): Promise<SyncStatus>;
   syncStatus(): Promise<SyncStatus>;
 }
