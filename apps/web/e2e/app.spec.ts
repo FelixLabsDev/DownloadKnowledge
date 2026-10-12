@@ -227,3 +227,24 @@ test('study: the text alignment can be chosen and is remembered', async ({ page 
   await page.getByRole('menuitem', { name: 'Note type default' }).click();
   await expect(card(page)).toHaveCSS('text-align', 'center');
 });
+
+test('field editor: a paste from a web page drops its styling, and a block background can be removed', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await page.goto('/add');
+  const front = page.getByRole('textbox', { name: 'Front' });
+  await front.click();
+  await front.evaluate((el) => {
+    const data = new DataTransfer();
+    data.setData('text/html', '<!--StartFragment--><ol class="x" style="color: rgb(69, 79, 91); background-color: rgb(255, 255, 255);"><li data-id="1" style="line-height: 2;"><strong style="color: rgb(22, 28, 36);">DNS</strong>: <span style="font-weight: 700;">first</span></li></ol>');
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  await expect(front).toHaveText('DNS: first');
+  expect(await front.innerHTML()).toBe('<ol><li><strong>DNS</strong>: <b>first</b></li></ol>');
+
+  // Styling that is already in a field (an older paste, an import) can be removed with the toolbar.
+  await front.evaluate((el) => el.querySelector('ol')!.setAttribute('style', 'background-color: rgb(255, 255, 255);'));
+  await front.press('ControlOrMeta+a');
+  await page.getByRole('button', { name: 'Highlight color', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Remove highlight color' }).click();
+  expect(await front.innerHTML()).toBe('<ol><li><strong>DNS</strong>: <b>first</b></li></ol>');
+});

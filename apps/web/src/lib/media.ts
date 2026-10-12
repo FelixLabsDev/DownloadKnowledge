@@ -65,3 +65,41 @@ export function sanitizeHtml(html: string): string {
   }
   return doc.body.innerHTML;
 }
+
+const PASTE_ATTRIBUTES = /^(href|src|data-dk-src|alt|title|controls|start|colspan|rowspan)$/;
+
+/**
+ * Pasted HTML reduced to its structure. A web page's copy carries its whole
+ * look as inline styles (fonts, text colour, a white background), which then
+ * fights the card's own styling and the dark theme. Bold and italic survive
+ * as tags; everything else about the look is dropped.
+ */
+export function cleanPastedHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(`<body>${sanitizeHtml(html)}</body>`, 'text/html');
+  const comments = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT);
+  const found: Node[] = [];
+  while (comments.nextNode()) found.push(comments.currentNode);
+  found.forEach((c) => c.parentNode?.removeChild(c));
+
+  for (const el of doc.body.querySelectorAll<HTMLElement>('*')) {
+    const weight = el.style.fontWeight;
+    const bold = weight === 'bold' || weight === 'bolder' || Number(weight) >= 600;
+    const italic = el.style.fontStyle === 'italic';
+    for (const a of [...el.attributes]) {
+      if (!PASTE_ATTRIBUTES.test(a.name.toLowerCase())) el.removeAttribute(a.name);
+    }
+    const tag = el.tagName;
+    // Google Docs wraps a whole copy in <b style="font-weight: normal"> and marks real bold with a span.
+    const notBold = (tag === 'B' || tag === 'STRONG') && weight !== '' && !bold;
+    if (tag === 'SPAN' || tag === 'FONT') {
+      for (const wrap of [bold && 'b', italic && 'i']) {
+        if (!wrap) continue;
+        const w = doc.createElement(wrap);
+        w.append(...el.childNodes);
+        el.append(w);
+      }
+    }
+    if (notBold || tag === 'FONT' || (tag === 'SPAN' && !el.attributes.length)) el.replaceWith(...el.childNodes);
+  }
+  return doc.body.innerHTML;
+}

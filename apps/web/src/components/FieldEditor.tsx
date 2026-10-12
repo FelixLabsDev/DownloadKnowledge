@@ -2,7 +2,7 @@ import { clozeIndexes } from '@dk/core';
 import { Ban, Baseline, Bold, Brackets, Highlighter, Image, Italic, List, ListOrdered, Music, Pipette } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '@/db/client';
-import { resolveMedia, sanitizeHtml } from '@/lib/media';
+import { cleanPastedHtml, resolveMedia, sanitizeHtml } from '@/lib/media';
 import { cn } from '@/lib/utils';
 import { useToast } from './ui';
 
@@ -212,6 +212,15 @@ export function FieldEditor({
       sel?.removeAllRanges();
       sel?.addRange(selection.current);
     }
+    if (!color) {
+      // The command only reaches inline text: a colour set on a list or a paragraph has to be cleared here.
+      const range = getSelection()?.rangeCount ? getSelection()!.getRangeAt(0) : null;
+      for (const node of el.querySelectorAll<HTMLElement>('[style]')) {
+        if (!node.style[prop] || !range?.intersectsNode(node) || getComputedStyle(node).display === 'inline') continue;
+        node.style[prop] = '';
+        if (!node.getAttribute('style')) node.removeAttribute('style');
+      }
+    }
     document.execCommand('styleWithCSS', false, 'true');
     document.execCommand(prop === 'color' ? 'foreColor' : 'hiliteColor', false, color ?? NO_COLOR);
     document.execCommand('styleWithCSS', false, 'false');
@@ -285,7 +294,7 @@ export function FieldEditor({
           const html = e.clipboardData.getData('text/html');
           if (html) {
             e.preventDefault();
-            command('insertHTML', sanitizeHtml(html));
+            command('insertHTML', cleanPastedHtml(html));
           }
         }}
       />
