@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { ancestry, deckPath, DkError, loadDecks, subtree, type DeckIndex } from './decks';
 import type { DbOrTx } from './driver';
 import { uuidv7 } from './ids';
@@ -187,8 +187,11 @@ export async function renderStudyCard(ctx: Ctx, card: Card, index?: DeckIndex): 
   };
 }
 
-/** The next card to study in a deck (and everything beneath it), honouring daily limits. */
-export async function nextStudyStep(ctx: Ctx, deckId: string): Promise<StudyStep> {
+/**
+ * The next card to study in a deck (and everything beneath it), honouring daily limits.
+ * Cards in `skip` are passed over; they still count as due.
+ */
+export async function nextStudyStep(ctx: Ctx, deckId: string, skip: string[] = []): Promise<StudyStep> {
   const tx = ctx.tx;
   const s = await loadStudyState(ctx);
   if (!s.index.byId.has(deckId)) throw new DkError('not_found', 'That deck does not exist.');
@@ -197,7 +200,7 @@ export async function nextStudyStep(ctx: Ctx, deckId: string): Promise<StudyStep
   const ids = tree.map((d) => d.id);
   const open = (kind: 'new' | 'review') =>
     tree.filter((d) => ancestry(s.index, d.id).every((a) => s.budget.get(a.id)![kind] > 0)).map((d) => d.id);
-  const live = and(isNull(cards.deletedAt), eq(cards.suspended, false));
+  const live = and(isNull(cards.deletedAt), eq(cards.suspended, false), skip.length ? notInArray(cards.id, skip) : undefined);
   const first = async (where: ReturnType<typeof and>, order: 'due' | 'id'): Promise<Card | undefined> =>
     (
       await tx

@@ -162,7 +162,7 @@ export class Collection {
   sync = (transport: Y.SyncTransport) => Y.syncOnce(this, transport);
 
   // Study
-  nextStudyStep = (deckId: string) => this.run((c) => S.nextStudyStep(c, deckId));
+  nextStudyStep = (deckId: string, skip?: string[]) => this.run((c) => S.nextStudyStep(c, deckId, skip));
   answerCard = (cardId: string, rating: Rating, durationMs: number) => this.run((c) => S.answerCard(c, cardId, rating, durationMs));
   undoLastReview = () => this.run((c) => S.undoLastReview(c));
   cramCardIds = (deckId: string) => this.run((c) => S.cramCardIds(c.tx, deckId));

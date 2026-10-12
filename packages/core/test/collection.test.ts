@@ -284,6 +284,16 @@ describe('study', () => {
     expect(step.card!.deckPath).toBe('P::C::G');
   });
 
+  it('passes over skipped cards without changing them or the counts', async () => {
+    const { col, deck } = await seed(2);
+    const first = await col.nextStudyStep(deck.id);
+    const next = await col.nextStudyStep(deck.id, [first.card!.card.id]);
+    expect(next.card!.front).toBe('q1');
+    expect(next.counts.new).toBe(2);
+    expect((await col.nextStudyStep(deck.id, [first.card!.card.id, next.card!.card.id])).card).toBeNull();
+    expect((await col.nextStudyStep(deck.id)).card!.front).toBe('q0');
+  });
+
   it('shows learning cards again within the session, then reviews on later days', async () => {
     const { col, clock, deck } = await seed(1);
     const first = await col.nextStudyStep(deck.id);

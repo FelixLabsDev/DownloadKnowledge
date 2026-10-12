@@ -1,5 +1,5 @@
 import type { Rating, StudyCard, StudyStep } from '@dk/core';
-import { ArrowLeft, EyeOff, MoreVertical, Pencil, RotateCcw, TextAlignCenter, TextAlignEnd, TextAlignStart, Undo2 } from 'lucide-react';
+import { ArrowLeft, EyeOff, MoreVertical, Pencil, RotateCcw, SkipForward, TextAlignCenter, TextAlignEnd, TextAlignStart, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CardView } from '@/components/CardView';
@@ -38,6 +38,8 @@ export function StudyPage() {
   const [align, setAlign] = useState(getCardAlign);
   const shownAt = useRef(Date.now());
   const cramQueue = useRef<string[] | null>(null);
+  /** Cards skipped in this session: passed over until nothing else is left. Nothing is written. */
+  const skipped = useRef<string[]>([]);
   const busy = useRef(false);
 
   const load = useCallback(async () => {
@@ -46,7 +48,12 @@ export function StudyPage() {
       const id = cramQueue.current[0];
       setView({ card: id ? await api.renderCardById(id) : null, counts: null, waitUntil: null, remaining: cramQueue.current.length });
     } else {
-      const step = await api.nextStudyStep(deckId);
+      let step = await api.nextStudyStep(deckId, skipped.current);
+      if (!step.card && skipped.current.length) {
+        // Only skipped cards are left: bring them back.
+        skipped.current = [];
+        step = await api.nextStudyStep(deckId);
+      }
       setView({ card: step.card, counts: step.counts, waitUntil: step.waitUntil });
     }
     setRevealed(false);
@@ -55,6 +62,7 @@ export function StudyPage() {
 
   useEffect(() => {
     cramQueue.current = null;
+    skipped.current = [];
     api.getDeck(deckId).then((d) => setDeckName(d.name), fail);
     load().catch(fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,6 +102,15 @@ export function StudyPage() {
       await load();
     });
 
+  const skip = () =>
+    guard(async () => {
+      if (!view?.card) return;
+      const id = view.card.card.id;
+      if (cram) cramQueue.current = [...(cramQueue.current ?? []).filter((x) => x !== id), id];
+      else skipped.current = [...skipped.current, id];
+      await load();
+    });
+
   const undo = () =>
     guard(async () => {
       const card = await api.undoLastReview();
@@ -126,6 +143,8 @@ export function StudyPage() {
         void answer(Number(e.key) as Rating);
       } else if (e.key === 'z' && !cram) {
         void undo();
+      } else if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
+        void skip();
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,6 +187,9 @@ export function StudyPage() {
             <Undo2 />
           </Button>
         )}
+        <Button variant="ghost" size="icon" aria-label="Skip card" title="Skip for now" disabled={!card} onClick={() => void skip()}>
+          <SkipForward />
+        </Button>
         <Menu
           label="Text alignment"
           trigger={ALIGN_ICONS[align ?? 'center']}
@@ -253,7 +275,7 @@ export function StudyPage() {
               </div>
             )}
             <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">
-              Space shows the answer, 1–4 rate it{cram ? '' : ', Z undoes'}.
+              Space shows the answer, 1–4 rate it, S skips{cram ? '' : ', Z undoes'}.
             </p>
             <p className="mt-2 text-center text-xs text-muted-foreground md:hidden">
               {revealed ? 'Swipe left for Again, right for Good.' : 'Tap the card to show the answer.'}

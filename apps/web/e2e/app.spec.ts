@@ -248,3 +248,17 @@ test('field editor: a paste from a web page drops its styling, and a block backg
   await page.getByRole('button', { name: 'Remove highlight color' }).click();
   expect(await front.innerHTML()).toBe('<ol><li><strong>DNS</strong>: <b>first</b></li></ol>');
 });
+
+test('study: a skipped card comes back after the others, unchanged', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await addBasic(page, 'perro', 'dog');
+  await addBasic(page, 'gato', 'cat');
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Spanish', exact: true }).click();
+  await expect(card(page)).toHaveText('perro');
+  await page.getByRole('button', { name: 'Skip card' }).click();
+  await expect(card(page)).toHaveText('gato');
+  await expect(page.getByTestId('counts')).toHaveText('200');
+  await page.getByRole('button', { name: 'Skip card' }).click();
+  await expect(card(page)).toHaveText('perro');
+});
