@@ -54,6 +54,19 @@ export function applyTheme(theme: Theme = getTheme()) {
   document.documentElement.classList.toggle('dark', dark);
 }
 
+export type CardAlign = 'left' | 'center' | 'right';
+
+/** How this device aligns card text while studying; null leaves it to the note type. */
+export function getCardAlign(): CardAlign | null {
+  const v = localStorage.getItem('dk-card-align');
+  return v === 'left' || v === 'center' || v === 'right' ? v : null;
+}
+
+export function setCardAlign(align: CardAlign | null) {
+  if (align) localStorage.setItem('dk-card-align', align);
+  else localStorage.removeItem('dk-card-align');
+}
+
 export const isDark = () => document.documentElement.classList.contains('dark');
 
 export function useMediaQuery(query: string): boolean {

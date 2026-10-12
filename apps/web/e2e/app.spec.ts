@@ -183,3 +183,47 @@ test('stats: tiles and charts reflect reviews', async ({ page }) => {
   await page.getByRole('button', { name: 'Table' }).last().click();
   await expect(page.getByRole('row', { name: /Spanish 1 0 1 0 0 2/ })).toBeVisible();
 });
+
+test('field editor: Tab moves between fields, and text can be coloured', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await page.goto('/add');
+  const front = page.getByRole('textbox', { name: 'Front' });
+  const back = page.getByRole('textbox', { name: 'Back' });
+  await front.click();
+  await page.keyboard.type('perro');
+  await page.keyboard.press('Tab');
+  await expect(back).toBeFocused();
+  await page.keyboard.type('dog');
+  await expect(back).toHaveText('dog');
+
+  await front.press('ControlOrMeta+a');
+  await page.getByRole('button', { name: 'Text color', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Text color #dc2626' }).click();
+  await expect(front.locator('span')).toHaveCSS('color', 'rgb(220, 38, 38)');
+  await page.getByRole('button', { name: 'Highlight color', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Highlight color #ca8a0459' }).click();
+  await expect(front.locator('span').first()).toHaveCSS('background-color', 'rgba(202, 138, 4, 0.35)');
+
+  await page.getByRole('button', { name: 'Text color', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Remove text color' }).click();
+  await page.getByRole('button', { name: 'Highlight color', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Remove highlight color' }).click();
+  await expect(front.locator('span')).toHaveCount(0);
+  await expect(front).toHaveText('perro');
+});
+
+test('study: the text alignment can be chosen and is remembered', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await addBasic(page, 'perro', 'dog');
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Spanish', exact: true }).click();
+  await expect(card(page)).toHaveCSS('text-align', 'center');
+  await page.getByRole('button', { name: 'Text alignment' }).click();
+  await page.getByRole('menuitem', { name: 'Align left' }).click();
+  await expect(card(page)).toHaveCSS('text-align', 'left');
+  await page.reload();
+  await expect(card(page)).toHaveCSS('text-align', 'left');
+  await page.getByRole('button', { name: 'Text alignment' }).click();
+  await page.getByRole('menuitem', { name: 'Note type default' }).click();
+  await expect(card(page)).toHaveCSS('text-align', 'center');
+});

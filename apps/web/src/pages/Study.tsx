@@ -1,11 +1,11 @@
 import type { Rating, StudyCard, StudyStep } from '@dk/core';
-import { ArrowLeft, EyeOff, MoreVertical, Pencil, Undo2 } from 'lucide-react';
+import { ArrowLeft, EyeOff, MoreVertical, Pencil, RotateCcw, TextAlignCenter, TextAlignEnd, TextAlignStart, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CardView } from '@/components/CardView';
 import { Button, Menu, useToast } from '@/components/ui';
 import { api } from '@/db/client';
-import { cn, formatInterval } from '@/lib/utils';
+import { cn, formatInterval, getCardAlign, setCardAlign, type CardAlign } from '@/lib/utils';
 
 const RATINGS: { rating: Rating; label: string; color: string }[] = [
   { rating: 1, label: 'Again', color: 'text-rate-again' },
@@ -13,6 +13,8 @@ const RATINGS: { rating: Rating; label: string; color: string }[] = [
   { rating: 3, label: 'Good', color: 'text-rate-good' },
   { rating: 4, label: 'Easy', color: 'text-rate-easy' },
 ];
+
+const ALIGN_ICONS = { left: <TextAlignStart />, center: <TextAlignCenter />, right: <TextAlignEnd /> };
 
 interface View {
   card: StudyCard | null;
@@ -33,6 +35,7 @@ export function StudyPage() {
   const [revealed, setRevealed] = useState(false);
   const [deckName, setDeckName] = useState('');
   const [answered, setAnswered] = useState(0);
+  const [align, setAlign] = useState(getCardAlign);
   const shownAt = useRef(Date.now());
   const cramQueue = useRef<string[] | null>(null);
   const busy = useRef(false);
@@ -134,6 +137,11 @@ export function StudyPage() {
     return () => document.removeEventListener('keydown', onKey);
   }, [onKey]);
 
+  const chooseAlign = (next: CardAlign | null) => {
+    setCardAlign(next);
+    setAlign(next);
+  };
+
   const card = view?.card ?? null;
   const now = Date.now();
 
@@ -160,6 +168,16 @@ export function StudyPage() {
             <Undo2 />
           </Button>
         )}
+        <Menu
+          label="Text alignment"
+          trigger={ALIGN_ICONS[align ?? 'center']}
+          items={[
+            { label: 'Align left', icon: ALIGN_ICONS.left, onSelect: () => chooseAlign('left') },
+            { label: 'Align center', icon: ALIGN_ICONS.center, onSelect: () => chooseAlign('center') },
+            { label: 'Align right', icon: ALIGN_ICONS.right, onSelect: () => chooseAlign('right') },
+            { label: 'Note type default', icon: <RotateCcw />, disabled: !align, onSelect: () => chooseAlign(null) },
+          ]}
+        />
         <Menu
           label="Card actions"
           trigger={<MoreVertical />}
@@ -209,6 +227,7 @@ export function StudyPage() {
             <CardView
               html={revealed ? card.back : card.front}
               css={card.css}
+              align={align}
               onTap={() => !revealed && setRevealed(true)}
               onSwipe={(dir) => (revealed ? void answer(dir === 'left' ? 1 : 3) : setRevealed(true))}
               onKey={onKey}

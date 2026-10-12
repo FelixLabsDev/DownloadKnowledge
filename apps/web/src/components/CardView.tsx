@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveMedia } from '@/lib/media';
-import { cn, isDark } from '@/lib/utils';
+import { cn, isDark, type CardAlign } from '@/lib/utils';
 
 const esc = (s: string) => s.replace(/<\/(style)/gi, '<\\/$1');
 
-function frameDoc(html: string, css: string, dark: boolean): string {
+function frameDoc(html: string, css: string, dark: boolean, align?: CardAlign | null): string {
   const fg = dark ? '#e2e8f0' : '#0f172a';
   return `<!doctype html><html><head><meta charset="utf-8"><base target="_blank">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,7 @@ hr { border: 0; border-top: 1px solid ${dark ? '#334155' : '#cbd5e1'}; margin: 2
 </style>
 <style>${esc(css)}</style>
 ${dark ? '<style>.card { color: #e2e8f0; background: transparent; }</style>' : ''}
+${align ? `<style>.card { text-align: ${align} !important; }</style>` : ''}
 </head><body class="card${dark ? ' nightMode night_mode' : ''}">${html}</body></html>`;
 }
 
@@ -34,6 +35,7 @@ const INTERACTIVE = 'a, audio, video, summary, details, button, input, select, t
 export function CardView({
   html,
   css,
+  align,
   className,
   onTap,
   onSwipe,
@@ -41,6 +43,8 @@ export function CardView({
 }: {
   html: string;
   css: string;
+  /** Overrides the note type's text alignment. */
+  align?: CardAlign | null;
   className?: string;
   onTap?(): void;
   onSwipe?(dir: 'left' | 'right'): void;
@@ -59,7 +63,7 @@ export function CardView({
   }, [html]);
 
   const dark = isDark();
-  const srcDoc = useMemo(() => (resolved === null ? '' : frameDoc(resolved, css, dark)), [resolved, css, dark]);
+  const srcDoc = useMemo(() => (resolved === null ? '' : frameDoc(resolved, css, dark, align)), [resolved, css, dark, align]);
 
   return (
     <iframe
