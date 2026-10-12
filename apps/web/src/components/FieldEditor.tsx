@@ -1,5 +1,5 @@
 import { clozeIndexes } from '@dk/core';
-import { Ban, Baseline, Bold, Brackets, Highlighter, Image, Italic, List, ListOrdered, Music, Pipette } from 'lucide-react';
+import { Ban, Baseline, Bold, Brackets, ChevronUp, Highlighter, Image, Italic, List, ListOrdered, Music, Pipette, Type, Underline } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '@/db/client';
 import { cleanPastedHtml, resolveMedia, sanitizeHtml } from '@/lib/media';
@@ -17,12 +17,13 @@ function serialise(root: HTMLElement): string {
   return html === '<br>' ? '' : html;
 }
 
-function ToolButton({ label, onClick, children }: { label: string; onClick(): void; children: ReactNode }) {
+function ToolButton({ label, onClick, expanded, children }: { label: string; onClick(): void; expanded?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
       title={label}
       aria-label={label}
+      aria-expanded={expanded}
       // Tab goes from one field straight to the next, not through the toolbar.
       tabIndex={-1}
       // Keep the selection in the field when the toolbar is pressed.
@@ -135,7 +136,7 @@ function ColorMenu({
 }
 
 /**
- * A rich-text field: bold, italic, text and highlight colour, lists, images (attach or paste), audio and,
+ * A rich-text field: bold, italic, underline, text and highlight colour, lists, images (attach or paste), audio and,
  * for cloze note types, a cloze button. Value in and out is the field's HTML.
  */
 export function FieldEditor({
@@ -160,6 +161,8 @@ export function FieldEditor({
   const imageInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
   const selection = useRef<Range | null>(null);
+  /** On a phone the formatting buttons stay folded away until asked for. */
+  const [tools, setTools] = useState(false);
   const { fail } = useToast();
 
   // Push external changes into the DOM, but never while they merely echo what the user typed.
@@ -264,15 +267,23 @@ export function FieldEditor({
     <div className="rounded-lg border border-input bg-card focus-within:ring-2 focus-within:ring-ring">
       <div className="relative flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
         <span className="mr-auto px-1.5 text-xs font-medium text-muted-foreground">{name}</span>
-        <ToolButton label="Bold" onClick={() => command('bold')}><Bold /></ToolButton>
-        <ToolButton label="Italic" onClick={() => command('italic')}><Italic /></ToolButton>
-        <ColorMenu label="Text color" colors={TEXT_COLORS} onOpen={saveSelection} onPick={(c) => paint('color', c)}><Baseline /></ColorMenu>
-        <ColorMenu label="Highlight color" colors={HIGHLIGHT_COLORS} onOpen={saveSelection} onPick={(c) => paint('backgroundColor', c)}><Highlighter /></ColorMenu>
-        <ToolButton label="Bulleted list" onClick={() => command('insertUnorderedList')}><List /></ToolButton>
-        <ToolButton label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered /></ToolButton>
-        <ToolButton label="Attach image" onClick={() => imageInput.current?.click()}><Image /></ToolButton>
-        <ToolButton label="Attach audio" onClick={() => audioInput.current?.click()}><Music /></ToolButton>
-        {cloze && <ToolButton label="Cloze deletion" onClick={addCloze}><Brackets /></ToolButton>}
+        <div className="md:hidden">
+          <ToolButton label={tools ? 'Hide formatting' : 'Show formatting'} expanded={tools} onClick={() => setTools(!tools)}>
+            {tools ? <ChevronUp /> : <Type />}
+          </ToolButton>
+        </div>
+        <div className={cn('flex-wrap items-center justify-end gap-0.5 md:flex md:w-auto', tools ? 'flex w-full' : 'hidden')}>
+          <ToolButton label="Bold" onClick={() => command('bold')}><Bold /></ToolButton>
+          <ToolButton label="Italic" onClick={() => command('italic')}><Italic /></ToolButton>
+          <ToolButton label="Underline" onClick={() => command('underline')}><Underline /></ToolButton>
+          <ColorMenu label="Text color" colors={TEXT_COLORS} onOpen={saveSelection} onPick={(c) => paint('color', c)}><Baseline /></ColorMenu>
+          <ColorMenu label="Highlight color" colors={HIGHLIGHT_COLORS} onOpen={saveSelection} onPick={(c) => paint('backgroundColor', c)}><Highlighter /></ColorMenu>
+          <ToolButton label="Bulleted list" onClick={() => command('insertUnorderedList')}><List /></ToolButton>
+          <ToolButton label="Numbered list" onClick={() => command('insertOrderedList')}><ListOrdered /></ToolButton>
+          <ToolButton label="Attach image" onClick={() => imageInput.current?.click()}><Image /></ToolButton>
+          <ToolButton label="Attach audio" onClick={() => audioInput.current?.click()}><Music /></ToolButton>
+          {cloze && <ToolButton label="Cloze deletion" onClick={addCloze}><Brackets /></ToolButton>}
+        </div>
       </div>
       <div
         ref={ref}

@@ -19,7 +19,7 @@ Two requirements shape how the work is done:
 - **Decks and folders.** A folder is a deck that has children (nested decks, as in Anki). Studying a deck includes everything beneath it.
 - **Review.** Study what is due in a deck or folder. Per-deck daily limits (default 20 new, 200 reviews; a parent's limit caps its children). Cram mode: study a deck regardless of schedule without changing the schedule. Undo last review. Suspend a card.
 - **Scheduling.** FSRS only, default parameters, desired retention per deck (default 90%). The study day rolls over at 04:00 local time.
-- **Editing.** Rich-text field editor (bold, italic, text and highlight colour, lists, paste or attach an image, attach audio, a cloze button). Templates of existing note types editable as raw HTML/CSS.
+- **Editing.** Rich-text field editor (bold, italic, underline, text and highlight colour, lists, paste or attach an image, attach audio, a cloze button). Templates of existing note types editable as raw HTML/CSS.
 - **Organisation.** Tags. A card browser with search. On desktop the browser is a table with bulk edit, move, tag, suspend and delete.
 - **Import.** Anki `.apkg` with media and deck hierarchy, with a checkbox to keep existing scheduling and review history. CSV/TSV import for hand-made lists.
 - **Export.** A full backup as JSON/CSV. Not `.apkg`.

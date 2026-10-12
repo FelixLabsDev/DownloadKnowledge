@@ -34,3 +34,17 @@ test('phone: the page does not scroll sideways', async ({ page }) => {
     expect(overflow, url).toBeLessThanOrEqual(0);
   }
 });
+
+test('phone: the formatting buttons are folded away until opened', async ({ page }) => {
+  await createDeck(page, 'Spanish');
+  await page.goto('/add');
+  const front = page.getByRole('textbox', { name: 'Front' });
+  await expect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0);
+  await front.fill('perro');
+  await front.press('ControlOrMeta+a');
+  await page.getByRole('button', { name: 'Show formatting' }).first().tap();
+  await page.getByRole('button', { name: 'Underline' }).tap();
+  expect(await front.innerHTML()).toBe('<u>perro</u>');
+  await page.getByRole('button', { name: 'Hide formatting' }).tap();
+  await expect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0);
+});
